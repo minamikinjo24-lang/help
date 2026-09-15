@@ -1,0 +1,32 @@
+# Render 用の設定。秘密値はここに書かない。
+# sync: false のキーは、Render の画面から手で入力する（リポジトリには残らない）。
+services:
+  - type: web
+    name: helpdesk
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/server.js
+    # 認証なしで 200 を返す唯一のパス。新しいURLを増やさずに済む。
+    healthCheckPath: /auth/login
+    envVars:
+      # node:sqlite を使うため 22.5 以上が必要
+      - key: NODE_VERSION
+        value: "22"
+      - key: OIDC_ISSUER
+        value: https://accounts.google.com
+      # Google Cloud Console で発行した値。Render の画面から入力する。
+      - key: OIDC_CLIENT_ID
+        sync: false
+      - key: OIDC_CLIENT_SECRET
+        sync: false
+      # Render が自動生成する。人が値を知る必要はない。
+      - key: SESSION_SECRET
+        generateValue: true
+      # BASE_URL は設定しない。Render が入れる RENDER_EXTERNAL_URL を使う。
+      # 社内ドメイン限定にする場合だけ Render の画面から入力する。
+      - key: OIDC_ALLOWED_HD
+        sync: false
+      - key: NOTIFICATION_WEBHOOK_URL
+        sync: false
