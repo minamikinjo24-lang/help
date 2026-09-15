@@ -19,4 +19,27 @@ db.exec(`
   )
 `);
 
+// CREATE TABLE IF NOT EXISTS は既存テーブルの中身を見ない。
+// 古いスキーマの help.db が残っていると、起動は通るのに INSERT だけが落ちるため、
+// ここで列構成を突き合わせて起動時に止める。
+const EXPECTED_COLUMNS = [
+  'id', 'title', 'body', 'status', 'priority', 'created_at', 'updated_at',
+];
+
+const actualColumns = db.prepare('PRAGMA table_info(tickets)').all().map((c) => c.name);
+const missing = EXPECTED_COLUMNS.filter((c) => !actualColumns.includes(c));
+const unexpected = actualColumns.filter((c) => !EXPECTED_COLUMNS.includes(c));
+
+if (missing.length > 0 || unexpected.length > 0) {
+  throw new Error(
+    [
+      `DBのスキーマが想定と一致しません: ${dbPath}`,
+      missing.length ? `  不足している列  : ${missing.join(', ')}` : null,
+      unexpected.length ? `  想定外の列      : ${unexpected.join(', ')}` : null,
+      '  古い help.db が残っている可能性があります。中のデータが不要なら',
+      `  このファイルを削除して起動し直してください（起動時に作り直されます）。`,
+    ].filter(Boolean).join('\n')
+  );
+}
+
 module.exports = db;

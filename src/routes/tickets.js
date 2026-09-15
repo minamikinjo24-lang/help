@@ -41,7 +41,19 @@ router.post('/tickets', (req, res) => {
   }
 
   const now = new Date().toISOString();
-  insertStmt.run(title, body, priority, now, now);
+
+  try {
+    insertStmt.run(title, body, priority, now, now);
+  } catch (err) {
+    // 素の 500 だと画面にもログにも原因が残らないため、理由を出して再表示する。
+    console.error('[作成失敗]', err.message);
+    return res.status(500).render('new', {
+      priorities: PRIORITIES,
+      values: { title, body, priority },
+      error: `保存できませんでした: ${err.message}`,
+    });
+  }
+
   res.redirect(303, '/');
 });
 
