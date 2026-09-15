@@ -23,5 +23,8 @@
   "private": true,
   "devDependencies": {
     "jose": "^6.2.12"
+  },
+  "engines": {
+    "node": ">=22.5"
   }
 }

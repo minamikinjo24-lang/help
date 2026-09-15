@@ -12,6 +12,13 @@ const apiTicketsRouter = require('./routes/api/tickets');
 
 const app = express();
 
+// TLSを終端するロードバランサの背後で動かす前提。
+// これを設定しないと req.protocol が http のままになり、cookie-session が
+// secure Cookie の送出を拒否する（= state/nonce が保存されずログインが無限ループする）。
+if (config.baseUrl.startsWith('https://')) {
+  app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS || 1));
+}
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: false }));

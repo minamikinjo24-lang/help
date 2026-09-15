@@ -1,0 +1,37 @@
+# Fly.io 用。秘密値はこのファイルに書かない（fly secrets set で渡す）。
+app = "CHANGE-ME-helpdesk"
+primary_region = "nrt"
+
+[build]
+
+# 秘密でない設定のみ。
+[env]
+  PORT = "8080"
+  DB_PATH = "/data/help.db"
+  BASE_URL = "https://CHANGE-ME-helpdesk.fly.dev"
+  OIDC_ISSUER = "https://accounts.google.com"
+
+# SQLite を置く永続ボリューム。これが無いとデプロイのたびにデータが消える。
+[[mounts]]
+  source = "helpdesk_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_start_machines = true
+  # SQLite を1つのボリュームで共有できないため、常に1台だけ動かす。
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    # 認証不要で 200 を返す唯一のパス。新しいURLを増やさずに済む。
+    path = "/auth/login"
+    timeout = "5s"
+
+[deploy]
+  # 単一ボリュームなので、新旧を同時に動かさない。
+  strategy = "immediate"
