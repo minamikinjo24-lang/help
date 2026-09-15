@@ -2,24 +2,22 @@
 
 <h1>問い合わせの新規作成</h1>
 
-<% if (error) { %>
-  <p role="alert"><strong><%= error %></strong></p>
-<% } %>
+<p role="alert" id="error" hidden></p>
 
-<form method="post" action="/tickets">
+<form id="ticket-form">
   <p>
     <label for="title">タイトル（必須）</label><br>
-    <input id="title" name="title" type="text" size="50" value="<%= values.title %>" required>
+    <input id="title" name="title" type="text" size="50" required>
   </p>
   <p>
     <label for="body">内容</label><br>
-    <textarea id="body" name="body" rows="6" cols="50"><%= values.body %></textarea>
+    <textarea id="body" name="body" rows="6" cols="50"></textarea>
   </p>
   <p>
     <label for="priority">優先度</label><br>
     <select id="priority" name="priority">
       <% priorities.forEach(function (p) { %>
-        <option value="<%= p %>" <%= p === values.priority ? 'selected' : '' %>><%= p %></option>
+        <option value="<%= p %>" <%= p === '中' ? 'selected' : '' %>><%= p %></option>
       <% }); %>
     </select>
   </p>
@@ -28,5 +26,41 @@
     <a href="/">一覧に戻る</a>
   </p>
 </form>
+
+<script>
+  document.getElementById('ticket-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var err = document.getElementById('error');
+    err.hidden = true;
+
+    var payload = {
+      title: document.getElementById('title').value,
+      body: document.getElementById('body').value,
+      priority: document.getElementById('priority').value,
+    };
+
+    try {
+      var res = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.status === 201) {
+        location.href = '/';
+        return;
+      }
+      if (res.status === 401) {
+        location.href = '/auth/login';
+        return;
+      }
+      var data = await res.json().catch(function () { return {}; });
+      err.textContent = data.error || '保存できませんでした。';
+      err.hidden = false;
+    } catch (e2) {
+      err.textContent = '保存できませんでした。通信を確認してください。';
+      err.hidden = false;
+    }
+  });
+</script>
 
 <%- include('partials/footer') %>

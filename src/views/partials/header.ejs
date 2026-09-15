@@ -6,3 +6,11 @@
   <title><%= title %> | 社内ヘルプデスク</title>
 </head>
 <body>
+<% if (typeof user !== 'undefined' && user) { %>
+  <p>
+    <%= user.email %>
+    <form method="post" action="/auth/logout" style="display:inline">
+      <button type="submit">ログアウト</button>
+    </form>
+  </p>
+<% } %>

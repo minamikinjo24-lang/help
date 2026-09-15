@@ -1,0 +1,12 @@
+<%- include('partials/header', { title: 'ログイン' }) %>
+
+<h1>社内ヘルプデスク</h1>
+
+<% if (notice) { %>
+  <p role="alert"><strong><%= notice %></strong></p>
+<% } %>
+
+<p>利用するにはログインが必要です。</p>
+<p><a href="/auth/login?start=1">ログインする</a></p>
+
+<%- include('partials/footer') %>
