@@ -1,0 +1,32 @@
+<%- include('partials/header', { title: '新規作成' }) %>
+
+<h1>問い合わせの新規作成</h1>
+
+<% if (error) { %>
+  <p role="alert"><strong><%= error %></strong></p>
+<% } %>
+
+<form method="post" action="/tickets">
+  <p>
+    <label for="title">タイトル（必須）</label><br>
+    <input id="title" name="title" type="text" size="50" value="<%= values.title %>" required>
+  </p>
+  <p>
+    <label for="body">内容</label><br>
+    <textarea id="body" name="body" rows="6" cols="50"><%= values.body %></textarea>
+  </p>
+  <p>
+    <label for="priority">優先度</label><br>
+    <select id="priority" name="priority">
+      <% priorities.forEach(function (p) { %>
+        <option value="<%= p %>" <%= p === values.priority ? 'selected' : '' %>><%= p %></option>
+      <% }); %>
+    </select>
+  </p>
+  <p>
+    <button type="submit">登録する</button>
+    <a href="/">一覧に戻る</a>
+  </p>
+</form>
+
+<%- include('partials/footer') %>

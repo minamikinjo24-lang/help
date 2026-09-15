@@ -1,0 +1,21 @@
+{
+  "name": "help",
+  "version": "0.1.0",
+  "description": "社内ヘルプデスク（問い合わせ管理）最小版",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/minamikinjo24-lang/help.git"
+  },
+  "bugs": {
+    "url": "https://github.com/minamikinjo24-lang/help/issues"
+  },
+  "homepage": "https://github.com/minamikinjo24-lang/help#readme",
+  "dependencies": {
+    "ejs": "^6.0.1",
+    "express": "^5.2.1"
+  },
+  "private": true
+}
