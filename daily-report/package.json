@@ -5,9 +5,10 @@
   "private": true,
   "scripts": {
     "start": "node src/server.js",
-    "check": "node test/format.test.js && bash test/check-api.sh",
+    "check": "node test/format.test.js && node test/check-api.js",
     "check:format": "node test/format.test.js",
-    "check:api": "bash test/check-api.sh"
+    "check:api": "node test/check-api.js",
+    "check:api:bash": "bash test/check-api.sh"
   },
   "engines": { "node": ">=22.5" },
   "dependencies": {
