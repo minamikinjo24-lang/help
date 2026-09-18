@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>日報作成</title>
+</head>
+<body>
+
+<h1>日報作成</h1>
+<p><a href="/reports">過去の日報を見る</a></p>
+
+<p role="alert" id="error" hidden></p>
+
+<form id="report-form" style="max-width:36em">
+  <p>
+    <label for="date">日付</label><br>
+    <input id="date" type="date" value="<%= today %>">
+  </p>
+  <p>
+    <label for="items">本日やったこと（1行に1件）</label><br>
+    <textarea id="items" rows="8" cols="46" placeholder="A社への見積もり作成&#10;定例会議に出席"></textarea>
+  </p>
+  <p>
+    <button type="submit">作成する</button>
+    <% if (previous) { %>
+      <button type="button" id="load-previous">前回の内容を読み込む</button>
+    <% } %>
+  </p>
+</form>
+
+<div id="result" hidden style="max-width:36em">
+  <h2>コピーして貼り付けてください</h2>
+  <textarea id="output" rows="12" cols="46" readonly></textarea>
+  <p>
+    <button type="button" id="copy">コピーする</button>
+    <span id="copied" hidden>コピーしました</span>
+  </p>
+</div>
+
+<script>
+  var previous = <%- JSON.stringify(previous) %>;
+  var err = document.getElementById('error');
+  var result = document.getElementById('result');
+  var output = document.getElementById('output');
+
+  var loadBtn = document.getElementById('load-previous');
+  if (loadBtn) {
+    loadBtn.addEventListener('click', function () {
+      document.getElementById('items').value = previous;
+    });
+  }
+
+  document.getElementById('report-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    err.hidden = true;
+    document.getElementById('copied').hidden = true;
+
+    try {
+      var res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: document.getElementById('date').value,
+          items: document.getElementById('items').value,
+        }),
+      });
+      var data = await res.json();
+      if (!res.ok) { err.textContent = data.error || '作成できませんでした。'; err.hidden = false; return; }
+      output.value = data.text;
+      result.hidden = false;
+      output.focus();
+      output.select();
+    } catch (e2) {
+      err.textContent = '作成できませんでした。通信を確認してください。';
+      err.hidden = false;
+    }
+  });
+
+  document.getElementById('copy').addEventListener('click', function () {
+    output.select();
+    // navigator.clipboard は場面によって使えないため、旧来の方法も残す
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(output.value).catch(function () { document.execCommand('copy'); });
+    } else {
+      document.execCommand('copy');
+    }
+    document.getElementById('copied').hidden = false;
+  });
+</script>
+
+</body>
+</html>

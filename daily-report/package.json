@@ -1,0 +1,17 @@
+{
+  "name": "daily-report",
+  "version": "0.1.0",
+  "description": "日報の定型部分を自動で作るツール",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "check": "node test/format.test.js && bash test/check-api.sh",
+    "check:format": "node test/format.test.js",
+    "check:api": "bash test/check-api.sh"
+  },
+  "engines": { "node": ">=22.5" },
+  "dependencies": {
+    "ejs": "^6.0.1",
+    "express": "^5.2.1"
+  }
+}
