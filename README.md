@@ -3,6 +3,14 @@
 一覧・新規作成に、OAuth(OIDC) ログインと作成時の Webhook 通知を加えた版です。
 編集・削除は実装していません。
 
+## 更新（Windows）
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/minamikinjo24-lang/help/claude/internal-helpdesk-design-k6udmr/update.ps1 | iex
+```
+
+`update.ps1` が停止・`.env` の退避と復元・取得・`npm install`・起動までを行います。
+
 ## 起動
 
 ```bash

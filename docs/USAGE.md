@@ -3,6 +3,20 @@
 技術的な知識がなくても操作できるように書いています。
 開発者向けの詳細は [README.md](../README.md) を参照してください。
 
+## 更新する（新しい版が出たとき）
+
+PowerShell に次の1行を貼り付けて Enter するだけです。停止・設定の退避・取得・
+設定の復元・部品の導入・起動まで自動で行います。
+
+```
+iwr -useb https://raw.githubusercontent.com/minamikinjo24-lang/help/claude/internal-helpdesk-design-k6udmr/update.ps1 | iex
+```
+
+途中で `[1] 起動中のアプリを停止します` のように進み方が表示されます。
+最後に `社内ヘルプデスク: http://localhost:3000` と出れば完了です。
+
+`.env`（Google の設定）は自動で引き継がれるので、入力し直す必要はありません。
+
 ## 毎回の起動と終了
 
 ### 起動する
