@@ -1,7 +1,6 @@
 const path = require('node:path');
 const express = require('express');
-const { findAnswer } = require('./match');
-const { FAQ } = require('./faq');
+const { search, FAQ } = require('./match');
 
 const app = express();
 
@@ -31,26 +30,44 @@ app.post('/api/ask', (req, res) => {
     return res.status(400).json({ error: '質問を入力してください。' });
   }
 
-  const found = findAnswer(question);
+  const result = search(question);
 
   // 記録するのは「どのFAQに一致したか」だけ。
   // 質問文そのものは出さない（氏名や連絡先が含まれうるため）。
-  // matched=none が増えていれば、FAQ に足すべき項目があると分かる。
-  console.log(`[応答] matched=${found ? found.item.id : 'none'}`);
+  // matched=none が増えていれば FAQ に足すべき項目が、
+  // matched=ambiguous が増えていればキーワードの整理が必要だと分かる。
+  const marker = result.decided
+    ? result.decided.id
+    : result.candidates.length > 0
+      ? `ambiguous(${result.candidates.map((c) => c.id).join('+')})`
+      : 'none';
+  console.log(`[応答] matched=${marker}`);
 
-  if (!found) {
-    // 分からないときは答えを作らない。担当者へ案内する。
+  // 候補が複数。どれか決めつけず、選んでもらう。
+  if (!result.decided && result.candidates.length > 0) {
     return res.json({
       found: false,
+      ambiguous: true,
+      answer: 'どちらについてのご質問でしょうか。選んでください。',
+      candidates: result.candidates.map((c) => c.question),
+    });
+  }
+
+  // 該当なし。答えを作らず、担当者へ案内する。
+  if (!result.decided) {
+    return res.json({
+      found: false,
+      ambiguous: false,
       answer: '申し訳ありません。その質問にはお答えできる情報がありません。担当者へお問い合わせください。',
     });
   }
 
   res.json({
     found: true,
-    answer: found.item.answer,
-    source: found.item.source,
-    matched: found.hits,
+    answer: result.decided.answer,
+    source: result.decided.source,
+    updatedAt: result.decided.updatedAt,
+    matched: result.hits,
   });
 });
 

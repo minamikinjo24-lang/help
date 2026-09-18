@@ -28,7 +28,7 @@
   var log = document.getElementById('log');
   var input = document.getElementById('question');
 
-  function add(who, text, note) {
+  function add(who, text, note, choices) {
     var p = document.createElement('p');
     p.style.margin = '6px 0';
     var b = document.createElement('strong');
@@ -41,6 +41,21 @@
       small.style.color = '#555';
       small.textContent = note;
       p.appendChild(small);
+    }
+    // 候補が複数あるときは、押せる形で並べる。こちらで1つに決めない。
+    if (choices && choices.length) {
+      var box = document.createElement('div');
+      box.style.marginTop = '4px';
+      choices.forEach(function (q) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'choice';
+        btn.style.margin = '2px';
+        btn.textContent = q;
+        btn.addEventListener('click', function () { ask(q); });
+        box.appendChild(btn);
+      });
+      p.appendChild(box);
     }
     log.appendChild(p);
     log.scrollTop = log.scrollHeight;
@@ -57,7 +72,8 @@
       });
       var data = await res.json();
       if (!res.ok) { add('ボット', data.error || 'エラーが発生しました。'); return; }
-      add('ボット', data.answer, data.found ? '出典: ' + data.source : null);
+      var note = data.found ? '出典: ' + data.source + '（最終更新 ' + data.updatedAt + '）' : null;
+      add('ボット', data.answer, note, data.candidates);
     } catch (e) {
       add('ボット', '通信に失敗しました。');
     }
