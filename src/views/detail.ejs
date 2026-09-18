@@ -108,7 +108,21 @@
       var latest = null;
 
       runBtn.addEventListener('click', function () {
-        latest = Classify.classify(title.value, body.value);
+        // 判定が失敗しても、押しても無反応という状態にはしない。
+        // 失敗しても編集フォームと保存はそのまま使える。
+        try {
+          latest = Classify.classify(title.value, body.value);
+        } catch (e) {
+          latest = null;
+          empty.hidden = true;
+          result.hidden = false;
+          adoptBtn.hidden = true;
+          document.getElementById('s-priority').textContent = '-';
+          document.getElementById('s-category').textContent = '-';
+          document.getElementById('s-reason').textContent =
+            '分類案を出せませんでした。優先度とカテゴリは手で選んでください。';
+          return;
+        }
         document.getElementById('s-priority').textContent = latest.priority;
         document.getElementById('s-category').textContent = latest.category;
         document.getElementById('s-reason').textContent = latest.reason + '。';

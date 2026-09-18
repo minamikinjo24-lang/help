@@ -37,17 +37,20 @@ router.get('/', (req, res) => {
 
 // 作成。ロールによらず全員できる。
 router.post('/', (req, res) => {
-  const title = String(req.body.title ?? '').trim();
-  const body = String(req.body.body ?? '').trim();
+  // Express 5 では本文が無いと req.body が undefined になる。
+  // そのまま参照すると 500 になるため、空のオブジェクトとして扱う。
+  const input = req.body || {};
+  const title = String(input.title ?? '').trim();
+  const body = String(input.body ?? '').trim();
 
   if (title === '') {
     return res.status(400).json({ error: 'タイトルを入力してください。' });
   }
 
-  const status = STATUSES.includes(req.body.status) ? req.body.status : '未対応';
-  const priority = PRIORITIES.includes(req.body.priority) ? req.body.priority : '中';
+  const status = STATUSES.includes(input.status) ? input.status : '未対応';
+  const priority = PRIORITIES.includes(input.priority) ? input.priority : '中';
   // 一覧に無い値は無視して未分類（null）にする。分類は任意項目のため。
-  const category = CATEGORIES.includes(req.body.category) ? req.body.category : null;
+  const category = CATEGORIES.includes(input.category) ? input.category : null;
   const now = new Date().toISOString();
 
   let id;
@@ -95,23 +98,26 @@ router.patch('/:id', (req, res) => {
   const row = getStmt.get(Number(req.params.id));
   if (!row) return res.status(404).json({ error: '見つかりません' });
 
+  // 本文が無いリクエストでも落とさない（POST と同じ理由）。
+  const input = req.body || {};
+
   // タイトルは空にできない。指定が無ければ今の値を残す。
   let title = row.title;
-  if (req.body.title !== undefined) {
-    title = String(req.body.title).trim();
+  if (input.title !== undefined) {
+    title = String(input.title).trim();
     if (title === '') {
       return res.status(400).json({ error: 'タイトルを入力してください。' });
     }
   }
 
-  const body = req.body.body === undefined ? row.body : String(req.body.body).trim();
-  const status = STATUSES.includes(req.body.status) ? req.body.status : row.status;
-  const priority = PRIORITIES.includes(req.body.priority) ? req.body.priority : row.priority;
+  const body = input.body === undefined ? row.body : String(input.body).trim();
+  const status = STATUSES.includes(input.status) ? input.status : row.status;
+  const priority = PRIORITIES.includes(input.priority) ? input.priority : row.priority;
   const category =
-    req.body.category === null || req.body.category === ''
+    input.category === null || input.category === ''
       ? null
-      : CATEGORIES.includes(req.body.category)
-        ? req.body.category
+      : CATEGORIES.includes(input.category)
+        ? input.category
         : row.category;
 
   try {

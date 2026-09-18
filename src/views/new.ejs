@@ -77,7 +77,21 @@
         return;
       }
 
-      latest = Classify.classify(title.value, body.value);
+      // 判定が失敗しても登録はできる状態のままにする。
+      try {
+        latest = Classify.classify(title.value, body.value);
+      } catch (e) {
+        latest = null;
+        document.getElementById('s-priority').textContent = '-';
+        document.getElementById('s-category').textContent = '-';
+        document.getElementById('s-reason').textContent =
+          '分類案を出せませんでした。優先度とカテゴリは手で選んでください。';
+        adopt.disabled = true;
+        empty.hidden = true;
+        result.hidden = false;
+        return;
+      }
+      adopt.disabled = false;
       document.getElementById('s-priority').textContent = latest.priority;
       document.getElementById('s-category').textContent = latest.category;
       document.getElementById('s-reason').textContent = latest.reason + '。';
