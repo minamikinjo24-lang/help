@@ -22,7 +22,8 @@ const insertStmt = db.prepare(
 );
 const deleteStmt = db.prepare('DELETE FROM tickets WHERE id = ?');
 const updateStmt = db.prepare(
-  'UPDATE tickets SET priority = ?, category = ?, updated_at = ? WHERE id = ?'
+  'UPDATE tickets SET title = ?, body = ?, status = ?, priority = ?, category = ?,' +
+    ' updated_at = ? WHERE id = ?'
 );
 
 const router = express.Router();
@@ -83,8 +84,9 @@ router.get('/:id', (req, res) => {
   res.json(row);
 });
 
-// 優先度とカテゴリの更新。分類案の採用に使う。
-// general は実行できない（画面にボタンを出さないだけでなく、ここでも拒否する）。
+// 更新。タイトル・内容・ステータス・優先度・カテゴリを変更できる。
+// general は実行できない（画面に出さないだけでなく、ここでも拒否する）。
+// 指定の無い項目は今の値を残すので、一部だけの更新もできる。
 router.patch('/:id', (req, res) => {
   if (!canSeeAllTickets(req.session.user.role)) {
     return deny(req, res, 'role_not_allowed');
@@ -93,7 +95,17 @@ router.patch('/:id', (req, res) => {
   const row = getStmt.get(Number(req.params.id));
   if (!row) return res.status(404).json({ error: '見つかりません' });
 
-  // 指定が無い項目は今の値を残す
+  // タイトルは空にできない。指定が無ければ今の値を残す。
+  let title = row.title;
+  if (req.body.title !== undefined) {
+    title = String(req.body.title).trim();
+    if (title === '') {
+      return res.status(400).json({ error: 'タイトルを入力してください。' });
+    }
+  }
+
+  const body = req.body.body === undefined ? row.body : String(req.body.body).trim();
+  const status = STATUSES.includes(req.body.status) ? req.body.status : row.status;
   const priority = PRIORITIES.includes(req.body.priority) ? req.body.priority : row.priority;
   const category =
     req.body.category === null || req.body.category === ''
@@ -103,7 +115,7 @@ router.patch('/:id', (req, res) => {
         : row.category;
 
   try {
-    updateStmt.run(priority, category, new Date().toISOString(), row.id);
+    updateStmt.run(title, body, status, priority, category, new Date().toISOString(), row.id);
   } catch (err) {
     console.error(
       `[サーバーエラー] method=PATCH path=/api/tickets/${row.id} name=${err.name} ` +

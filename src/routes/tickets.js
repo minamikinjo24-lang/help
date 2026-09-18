@@ -5,6 +5,8 @@ const db = require('../db');
 const { canSeeAllTickets, canDeleteTickets } = require('../auth/roles');
 const { CATEGORIES } = require('../classify/rules');
 
+const STATUSES = ['未対応', '対応中', '完了'];
+
 // 判定ルールは画面の中で動かす。外部への通信を挟まないため。
 // ファイルをそのまま埋め込むので、Node 側とブラウザ側でルールがズレない。
 const CLASSIFY_SCRIPT = fs.readFileSync(
@@ -67,6 +69,9 @@ router.get('/tickets/:id', (req, res) => {
     user,
     priorities: PRIORITIES,
     categories: CATEGORIES,
+    statuses: STATUSES,
+    // 編集と分類案は同じ条件。general は閲覧のみ。
+    canEdit: canSeeAllTickets(user.role),
     canClassify: canSeeAllTickets(user.role),
     classifyScript: CLASSIFY_SCRIPT,
   });

@@ -2,86 +2,145 @@
 
 <p><a href="/">← 一覧に戻る</a></p>
 
-<h1>#<%= ticket.id %> <%= ticket.title %></h1>
+<h1>#<%= ticket.id %> <span id="v-title"><%= ticket.title %></span></h1>
 
 <p role="alert" id="error" hidden></p>
 <p id="saved" hidden><strong>保存しました。</strong></p>
 
-<table border="1" cellpadding="6">
-  <tr><th align="left">ステータス</th><td><%= ticket.status %></td></tr>
-  <tr><th align="left">優先度</th><td id="v-priority"><%= ticket.priority %></td></tr>
-  <tr><th align="left">カテゴリ</th><td id="v-category"><%= ticket.category || '未分類' %></td></tr>
-  <tr><th align="left">登録日時</th><td><%= ticket.created_at %></td></tr>
-  <tr><th align="left">更新日時</th><td id="v-updated"><%= ticket.updated_at %></td></tr>
-</table>
+<% if (!canEdit) { %>
+  <%# 閲覧のみ。general は自分の問い合わせを見るだけで、変更はできない。 %>
+  <table border="1" cellpadding="6">
+    <tr><th align="left">ステータス</th><td><%= ticket.status %></td></tr>
+    <tr><th align="left">優先度</th><td><%= ticket.priority %></td></tr>
+    <tr><th align="left">カテゴリ</th><td><%= ticket.category || '未分類' %></td></tr>
+    <tr><th align="left">登録日時</th><td><%= ticket.created_at %></td></tr>
+    <tr><th align="left">更新日時</th><td><%= ticket.updated_at %></td></tr>
+  </table>
 
-<h2>内容</h2>
-<p style="white-space:pre-wrap; max-width:40em; border:1px solid #ccc; padding:8px">
+  <h2>内容</h2>
+  <p style="white-space:pre-wrap; max-width:40em; border:1px solid #ccc; padding:8px">
 <%= ticket.body || '（内容の記載はありません）' %>
-</p>
+  </p>
+<% } else { %>
+  <p>
+    登録日時: <%= ticket.created_at %><br>
+    更新日時: <span id="v-updated"><%= ticket.updated_at %></span>
+  </p>
 
-<% if (canClassify) { %>
-  <%# 分類案。判定は画面の中だけで行い、採用を押すまで保存しない。 %>
-  <fieldset style="max-width:34em; margin:12px 0; padding:8px 12px">
-    <legend><strong>分類案</strong></legend>
-
-    <p id="s-empty" style="margin:4px 0; color:#555">
-      ボタンを押すと、タイトルと内容から分類案を出します。
+  <h2>編集</h2>
+  <form id="edit-form">
+    <p>
+      <label for="title">タイトル（必須）</label><br>
+      <input id="title" type="text" size="50" value="<%= ticket.title %>" required>
+    </p>
+    <p>
+      <label for="body">内容</label><br>
+      <textarea id="body" rows="8" cols="50"><%= ticket.body %></textarea>
+    </p>
+    <p>
+      <label for="status">ステータス</label><br>
+      <select id="status">
+        <% statuses.forEach(function (st) { %>
+          <option value="<%= st %>" <%= st === ticket.status ? 'selected' : '' %>><%= st %></option>
+        <% }); %>
+      </select>
+    </p>
+    <p>
+      <label for="priority">優先度</label><br>
+      <select id="priority">
+        <% priorities.forEach(function (p) { %>
+          <option value="<%= p %>" <%= p === ticket.priority ? 'selected' : '' %>><%= p %></option>
+        <% }); %>
+      </select>
+    </p>
+    <p>
+      <label for="category">カテゴリ</label><br>
+      <select id="category">
+        <option value="" <%= ticket.category ? '' : 'selected' %>>未分類</option>
+        <% categories.forEach(function (c) { %>
+          <option value="<%= c %>" <%= c === ticket.category ? 'selected' : '' %>><%= c %></option>
+        <% }); %>
+      </select>
     </p>
 
-    <div id="s-result" hidden>
-      <p style="margin:4px 0">
-        優先度案: <strong id="s-priority"></strong><br>
-        カテゴリ案: <strong id="s-category"></strong>
+    <%# 分類案。判定は画面の中だけで行い、フォームに反映するだけで保存はしない。 %>
+    <fieldset style="max-width:34em; margin:12px 0; padding:8px 12px">
+      <legend><strong>分類案</strong></legend>
+
+      <p id="s-empty" style="margin:4px 0; color:#555">
+        ボタンを押すと、いまのタイトルと内容から分類案を出します。
       </p>
-      <p style="margin:4px 0; font-size:0.9em" id="s-reason"></p>
-    </div>
 
-    <p style="margin:8px 0 4px">
-      <button type="button" id="run">分類案を出す</button>
-      <button type="button" id="adopt" hidden>この分類案を採用して保存する</button>
+      <div id="s-result" hidden>
+        <p style="margin:4px 0">
+          優先度案: <strong id="s-priority"></strong><br>
+          カテゴリ案: <strong id="s-category"></strong>
+        </p>
+        <p style="margin:4px 0; font-size:0.9em" id="s-reason"></p>
+      </div>
+
+      <p style="margin:8px 0 4px">
+        <button type="button" id="run">分類案を出す</button>
+        <button type="button" id="adopt" hidden>この分類案を上の欄に反映する</button>
+      </p>
+    </fieldset>
+
+    <p>
+      <button type="submit">保存する</button>
+      <a href="/">保存せずに一覧へ戻る</a>
     </p>
-  </fieldset>
+  </form>
 
   <script><%- classifyScript %></script>
   <script>
     (function () {
-      var ticket = {
-        id: <%= ticket.id %>,
-        title: <%- JSON.stringify(ticket.title) %>,
-        body: <%- JSON.stringify(ticket.body || '') %>
-      };
+      var ticketId = <%= ticket.id %>;
+      var title = document.getElementById('title');
+      var body = document.getElementById('body');
+      var err = document.getElementById('error');
+      var saved = document.getElementById('saved');
+
+      // --- 分類案 ---
       var runBtn = document.getElementById('run');
       var adoptBtn = document.getElementById('adopt');
       var empty = document.getElementById('s-empty');
       var result = document.getElementById('s-result');
-      var err = document.getElementById('error');
-      var saved = document.getElementById('saved');
       var latest = null;
 
       runBtn.addEventListener('click', function () {
-        latest = Classify.classify(ticket.title, ticket.body);
+        latest = Classify.classify(title.value, body.value);
         document.getElementById('s-priority').textContent = latest.priority;
         document.getElementById('s-category').textContent = latest.category;
         document.getElementById('s-reason').textContent = latest.reason + '。';
         empty.hidden = true;
         result.hidden = false;
         adoptBtn.hidden = false;
-        adoptBtn.disabled = false;
       });
 
-      adoptBtn.addEventListener('click', async function () {
+      adoptBtn.addEventListener('click', function () {
         if (!latest) return;
+        document.getElementById('priority').value = latest.priority;
+        // 判断不能のときはカテゴリを触らない
+        if (latest.categoryDecided) document.getElementById('category').value = latest.category;
+        document.getElementById('s-reason').textContent = '上の欄に反映しました。保存するには「保存する」を押してください。';
+      });
+
+      // --- 保存 ---
+      document.getElementById('edit-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
         err.hidden = true;
         saved.hidden = true;
-        adoptBtn.disabled = true;
 
-        var payload = { priority: latest.priority };
-        // 判断不能のときはカテゴリを触らない
-        if (latest.categoryDecided) payload.category = latest.category;
+        var payload = {
+          title: title.value,
+          body: body.value,
+          status: document.getElementById('status').value,
+          priority: document.getElementById('priority').value,
+          category: document.getElementById('category').value,
+        };
 
         try {
-          var res = await fetch('/api/tickets/' + ticket.id, {
+          var res = await fetch('/api/tickets/' + ticketId, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -91,18 +150,16 @@
             var data = await res.json().catch(function () { return {}; });
             err.textContent = data.error || '保存できませんでした。';
             err.hidden = false;
-            adoptBtn.disabled = false;
             return;
           }
           var t = await res.json();
-          document.getElementById('v-priority').textContent = t.priority;
-          document.getElementById('v-category').textContent = t.category || '未分類';
+          document.getElementById('v-title').textContent = t.title;
           document.getElementById('v-updated').textContent = t.updated_at;
           saved.hidden = false;
-        } catch (e) {
+          window.scrollTo(0, 0);
+        } catch (e2) {
           err.textContent = '保存できませんでした。通信を確認してください。';
           err.hidden = false;
-          adoptBtn.disabled = false;
         }
       });
     })();

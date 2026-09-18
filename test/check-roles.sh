@@ -131,7 +131,19 @@ expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "http://localhost:
 expect 403 "$(patch "$R/jar_g"  "$T_G")"                  "general は更新できない"
 expect 200 "$(patch "$R/jar_a"  "$T_G")"                  "agent は更新できる"
 expect 200 "$(patch "$R/jar_ad" "$T_G")"                  "admin は更新できる"
-expect 1 "$(page "$R/jar_ad" "/tickets/$T_G" | grep -c '<td id="v-priority">高</td>')" "更新が詳細画面に反映される"
+expect 1 "$(page "$R/jar_ad" "/tickets/$T_G" | grep -c 'value="高" selected')" "更新が詳細画面の入力欄に反映される"
+
+echo
+echo "### 15. 編集（Update）"
+expect 400 "$(curl -s -b "$R/jar_ad" -o /dev/null -w '%{http_code}' -X PATCH "http://localhost:3000/api/tickets/$T_G" -H 'Content-Type: application/json' -d '{"title":"  "}')" "タイトルを空にはできない"
+expect 200 "$(curl -s -b "$R/jar_ad" -o /dev/null -w '%{http_code}' -X PATCH "http://localhost:3000/api/tickets/$T_G" -H 'Content-Type: application/json' -d '{"title":"編集後のタイトル","body":"編集後の内容","status":"対応中"}')" "タイトル・内容・ステータスを更新できる"
+expect 1 "$(page "$R/jar_ad" "/tickets/$T_G" | grep -c 'value="編集後のタイトル"')" "更新したタイトルが詳細の入力欄に出る"
+expect 1 "$(page "$R/jar_ad" "/tickets/$T_G" | grep -c '編集後の内容')" "更新した内容が詳細に出る"
+expect 1 "$(page "$R/jar_ad" "/tickets/$T_G" | grep -c 'value="対応中" selected')" "更新したステータスが反映される"
+expect 1 "$(page "$R/jar_ad" "/" | grep -c '>編集後のタイトル</a>')" "一覧のリンクにも反映される"
+expect 0 "$(page "$R/jar_g"  "/tickets/$T_G2" | grep -c 'id="edit-form"')" "general には編集フォームが出ない"
+expect 1 "$(page "$R/jar_a"  "/tickets/$T_G"  | grep -c 'id="edit-form"')" "agent には編集フォームが出る"
+expect 1 "$(page "$R/jar_ad" "/tickets/$T_G"  | grep -c 'id="edit-form"')" "admin には編集フォームが出る"
 
 echo
 echo "### 14. 詳細画面の「分類案を出す」ボタン"
