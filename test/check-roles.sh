@@ -94,16 +94,28 @@ for r in g a ad; do
   expect 200 "$(code "$R/jar_$r" GET /)"          "9: 一覧が開く（jar_$r）"
   expect 200 "$(code "$R/jar_$r" GET /tickets/new)" "10: 作成フォームが開く（jar_$r）"
 done
-curl -s -b "$R/jar_g" http://localhost:3000/ > "$R/screen_g.html"
-curl -s -b "$R/jar_a" http://localhost:3000/ > "$R/screen_a.html"
+curl -s -b "$R/jar_g"  http://localhost:3000/ > "$R/screen_g.html"
+curl -s -b "$R/jar_a"  http://localhost:3000/ > "$R/screen_a.html"
+curl -s -b "$R/jar_ad" http://localhost:3000/ > "$R/screen_ad.html"
 expect 0 "$(grep -c '別の一般ユーザーの問い合わせ' "$R/screen_g.html")" "9: general の画面に他人のチケットが出ない"
 expect 1 "$(grep -c '一般ユーザーの問い合わせ' "$R/screen_g.html" | head -1)" "9: general の画面に自分のチケットが出る"
 
 echo
+echo "### 11. 一覧画面の削除ボタン（admin のみ表示）"
+expect 0 "$(grep -c 'class="delete"' "$R/screen_g.html")"  "11: general には削除ボタンが出ない"
+expect 0 "$(grep -c 'class="delete"' "$R/screen_a.html")"  "11: agent には削除ボタンが出ない"
+admin_rows=$(grep -c '<tr>' "$R/screen_ad.html")
+admin_btns=$(grep -c 'class="delete"' "$R/screen_ad.html")
+expect 1 "$([ "$admin_btns" -gt 0 ] && echo 1 || echo 0)" "11: admin には削除ボタンが出る（${admin_btns}個）"
+expect 0 "$(grep -c '操作' "$R/screen_g.html")"            "11: general には操作列そのものが無い"
+# ボタンを隠すだけでなく API 側でも拒否されることを再確認する
+expect 403 "$(code "$R/jar_g" DELETE "/api/tickets/$T_G2")" "11: ボタンが無くても general の DELETE は 403" 
+
+echo
 echo "### ログの中身"
-# 上で 403 を期待したケースは 8 件。拒否ログもちょうど 8 行あるはず。
+# 上で 403 を期待したケースは 9 件（#11 の再確認を含む）。拒否ログも同数のはず。
 denials=$(grep -c '\[権限拒否\]' "$LOG")
-expect 8 "$denials" "403 の回数と拒否ログの行数が一致する"
+expect 9 "$denials" "403 の回数と拒否ログの行数が一致する"
 for pat in 'mock_access_token' 'eyJ' 'id_token' '@example.co.jp' '問い合わせ'; do
   expect 0 "$(grep -c -- "$pat" "$LOG")" "ログに出ていない: $pat"
 done

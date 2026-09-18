@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../db');
-const { canSeeAllTickets } = require('../auth/roles');
+const { canSeeAllTickets, canDeleteTickets } = require('../auth/roles');
 
 const PRIORITIES = ['低', '中', '高'];
 const COLUMNS = 'id, title, status, priority, updated_at';
@@ -16,7 +16,7 @@ const router = express.Router();
 router.get('/', (req, res) => {
   const user = req.session.user;
   const tickets = canSeeAllTickets(user.role) ? listAllStmt.all() : listMineStmt.all(user.sub);
-  res.render('list', { tickets, user });
+  res.render('list', { tickets, user, canDelete: canDeleteTickets(user.role) });
 });
 
 // 新規作成フォーム。送信は画面内から POST /api/tickets を呼ぶ。

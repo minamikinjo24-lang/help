@@ -3,6 +3,8 @@
 <h1>問い合わせ一覧</h1>
 <p><a href="/tickets/new">新規作成</a></p>
 
+<p role="alert" id="error" hidden></p>
+
 <% if (tickets.length === 0) { %>
   <p>問い合わせはまだありません。</p>
 <% } else { %>
@@ -10,6 +12,8 @@
     <thead>
       <tr>
         <th>ID</th><th>タイトル</th><th>ステータス</th><th>優先度</th><th>更新日時</th>
+        <%# 削除は admin のみ。ボタンを隠すだけでなく API 側でも 403 になる。 %>
+        <% if (canDelete) { %><th>操作</th><% } %>
       </tr>
     </thead>
     <tbody>
@@ -20,10 +24,44 @@
           <td><%= t.status %></td>
           <td><%= t.priority %></td>
           <td><%= t.updated_at %></td>
+          <% if (canDelete) { %>
+            <td>
+              <button type="button" class="delete" data-id="<%= t.id %>"
+                      data-title="<%= t.title %>">削除</button>
+            </td>
+          <% } %>
         </tr>
       <% }); %>
     </tbody>
   </table>
+<% } %>
+
+<% if (canDelete) { %>
+<script>
+  document.querySelectorAll('button.delete').forEach(function (btn) {
+    btn.addEventListener('click', async function () {
+      var id = btn.dataset.id;
+      // 削除は取り消せないので確認を挟む
+      if (!confirm('ID ' + id + '「' + btn.dataset.title + '」を削除します。元に戻せません。')) return;
+
+      var err = document.getElementById('error');
+      err.hidden = true;
+      btn.disabled = true;
+      try {
+        var res = await fetch('/api/tickets/' + id, { method: 'DELETE' });
+        if (res.status === 204) { location.reload(); return; }
+        if (res.status === 401) { location.href = '/auth/login'; return; }
+        var data = await res.json().catch(function () { return {}; });
+        err.textContent = data.error || '削除できませんでした。';
+        err.hidden = false;
+      } catch (e) {
+        err.textContent = '削除できませんでした。通信を確認してください。';
+        err.hidden = false;
+      }
+      btn.disabled = false;
+    });
+  });
+</script>
 <% } %>
 
 <%- include('partials/footer') %>
