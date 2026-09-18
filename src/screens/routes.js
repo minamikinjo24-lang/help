@@ -3,14 +3,14 @@ const path = require('node:path');
 const express = require('express');
 const db = require('../db');
 const { canSeeAllTickets, canDeleteTickets } = require('../auth/roles');
-const { CATEGORIES } = require('../classify/rules');
+const { CATEGORIES } = require('../suggest/rules');
 
 const STATUSES = ['未対応', '対応中', '完了'];
 
 // 判定ルールは画面の中で動かす。外部への通信を挟まないため。
 // ファイルをそのまま埋め込むので、Node 側とブラウザ側でルールがズレない。
 const CLASSIFY_SCRIPT = fs.readFileSync(
-  path.join(__dirname, '..', 'classify', 'rules.js'),
+  path.join(__dirname, '..', 'suggest', 'rules.js'),
   'utf8'
 );
 

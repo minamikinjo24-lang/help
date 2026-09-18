@@ -29,30 +29,30 @@ trap 'free_port 3000; free_port 4000' EXIT
 echo "##### 1. 保存ツールが定義に含まれない #####"
 # 分類モジュールが公開しているものに、保存・送信にあたるものが無いこと
 exported=$(node -e "
-  const m = require('./src/classify/rules.js');
+  const m = require('./src/suggest/rules.js');
   console.log(Object.keys(m).join(','));
 ")
 echo "  公開しているもの: $exported"
 expect 0 "$(node -e "
-  const m = require('./src/classify/rules.js');
+  const m = require('./src/suggest/rules.js');
   const bad = Object.keys(m).filter(k => /save|create|update|delete|insert|patch|post|put|write|send|exec|run/i.test(k));
   console.log(bad.length);
 ")" "保存・送信にあたる名前を公開していない"
 expect 0 "$(node -e "
-  const m = require('./src/classify/rules.js');
+  const m = require('./src/suggest/rules.js');
   console.log(typeof m.classify === 'function' ? 0 : 1);
 ")" "classify は関数として存在する"
 
 # ファイルの中身に、保存や外部通信の手段が無いこと
 for pat in 'require(' 'fetch(' 'XMLHttpRequest' 'db\.' 'sqlite' 'localStorage' 'navigator.sendBeacon'; do
-  expect 0 "$(grep -c -- "$pat" src/classify/rules.js)" "rules.js に $pat が無い"
+  expect 0 "$(grep -c -- "$pat" src/suggest/rules.js)" "rules.js に $pat が無い"
 done
 
 # classify を呼んでもDBが変化しないこと（純粋な関数であること）
 expect 0 "$(node -e "
   const fs = require('fs');
   const before = fs.existsSync('./data') ? fs.readdirSync('./data').length : -1;
-  const { classify } = require('./src/classify/rules.js');
+  const { classify } = require('./src/suggest/rules.js');
   classify('印刷できない', '全社で止まっています');
   const after = fs.existsSync('./data') ? fs.readdirSync('./data').length : -1;
   console.log(before === after ? 0 : 1);
@@ -96,10 +96,10 @@ echo
 echo "##### 3. 判定が失敗してもアプリ全体が死なない #####"
 # 画面側: 判定の呼び出しが例外処理で囲まれていること（囲まれていないと押しても無反応になる）
 # 判定の呼び出しそのものが try で囲まれているかを見る（try の総数ではなく）
-expect 1 "$(grep -B2 'Classify.classify' src/views/detail.ejs | grep -c 'try {')" "detail.ejs で判定の呼び出しを例外処理している"
-expect 1 "$(grep -B2 'Classify.classify' src/views/new.ejs | grep -c 'try {')" "new.ejs で判定の呼び出しを例外処理している"
-expect 1 "$(grep -c 'classifyFailed\|分類案を出せませんでした' src/views/detail.ejs)" "detail.ejs に判定失敗時の表示がある"
-expect 1 "$(grep -c 'classifyFailed\|分類案を出せませんでした' src/views/new.ejs)" "new.ejs に判定失敗時の表示がある"
+expect 1 "$(grep -B2 'Classify.classify' src/screens/views/detail.ejs | grep -c 'try {')" "detail.ejs で判定の呼び出しを例外処理している"
+expect 1 "$(grep -B2 'Classify.classify' src/screens/views/new.ejs | grep -c 'try {')" "new.ejs で判定の呼び出しを例外処理している"
+expect 1 "$(grep -c 'classifyFailed\|分類案を出せませんでした' src/screens/views/detail.ejs)" "detail.ejs に判定失敗時の表示がある"
+expect 1 "$(grep -c 'classifyFailed\|分類案を出せませんでした' src/screens/views/new.ejs)" "new.ejs に判定失敗時の表示がある"
 # サーバー側: 500 が起きてもプロセスが生き続けること
 rm -f "$DB"
 expect 500 "$(curl -s -b "$R/jar_a" -o /dev/null -w '%{http_code}' -X POST http://localhost:3000/api/tickets \

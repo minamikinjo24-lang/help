@@ -5,10 +5,11 @@ const cookieSession = require('cookie-session');
 const config = require('./config');
 config.assertAuthEnv();
 
-const authRouter = require('./routes/auth');
-const requireLogin = require('./middleware/requireLogin');
-const ticketsRouter = require('./routes/tickets');
-const apiTicketsRouter = require('./routes/api/tickets');
+const { logServerError } = require('./errors');
+const authRouter = require('./auth/routes');
+const requireLogin = require('./auth/require-login');
+const screensRouter = require('./screens/routes');
+const apiTicketsRouter = require('./api/tickets');
 
 const app = express();
 
@@ -20,7 +21,7 @@ if (config.baseUrl.startsWith('https://')) {
 }
 
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(__dirname, 'screens', 'views'));
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
@@ -40,17 +41,11 @@ app.use('/', authRouter);
 
 // ここから先はログインが必要。
 app.use('/api/tickets', requireLogin, apiTicketsRouter);
-app.use('/', requireLogin, ticketsRouter);
+app.use('/', requireLogin, screensRouter);
 
 // 拾われなかった例外はここで 500 にする。素の 500 だと原因が残らないため。
-// message は本文の断片を含みうる body-parser のエラーだけ落とす。
-// それ以外はトークンも個人情報も含まないので残す。
 app.use((err, req, res, _next) => {
-  const safeMessage = err.type === 'entity.parse.failed' ? '(本文の解析に失敗)' : err.message;
-  console.error(
-    `[サーバーエラー] method=${req.method} path=${req.originalUrl} ` +
-      `name=${err.name} code=${err.code || '-'} message=${safeMessage}`
-  );
+  logServerError(req, err);
   if (req.originalUrl.startsWith('/api/')) {
     return res.status(500).json({ error: 'サーバーエラーが発生しました' });
   }

@@ -1,5 +1,5 @@
 // 分類ルールの確認。外部への通信は無いので、そのまま実行できる。
-const { classify, CATEGORIES } = require('../src/classify/rules');
+const { classify, CATEGORIES } = require('../src/suggest/rules');
 
 const CASES = [
   // 入力                                        期待カテゴリ    期待優先度

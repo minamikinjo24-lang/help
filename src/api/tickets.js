@@ -1,9 +1,10 @@
 const express = require('express');
-const db = require('../../db');
-const { notifyTicketCreated } = require('../../notify');
-const { canSeeAllTickets, canDeleteTickets } = require('../../auth/roles');
-const { deny } = require('../../auth/deny');
-const { CATEGORIES } = require('../../classify/rules');
+const db = require('../db');
+const { notifyTicketCreated } = require('../notify');
+const { canSeeAllTickets, canDeleteTickets } = require('../auth/roles');
+const { deny } = require('../auth/deny');
+const { CATEGORIES } = require('../suggest/rules');
+const { logServerError, notFound, titleRequired } = require('../errors');
 
 const STATUSES = ['未対応', '対応中', '完了'];
 const PRIORITIES = ['低', '中', '高'];
@@ -43,9 +44,7 @@ router.post('/', (req, res) => {
   const title = String(input.title ?? '').trim();
   const body = String(input.body ?? '').trim();
 
-  if (title === '') {
-    return res.status(400).json({ error: 'タイトルを入力してください。' });
-  }
+  if (title === '') return titleRequired(res);
 
   const status = STATUSES.includes(input.status) ? input.status : '未対応';
   const priority = PRIORITIES.includes(input.priority) ? input.priority : '中';
@@ -60,10 +59,7 @@ router.post('/', (req, res) => {
     );
     id = Number(result.lastInsertRowid);
   } catch (err) {
-    console.error(
-      `[サーバーエラー] method=POST path=/api/tickets name=${err.name} ` +
-        `code=${err.code || '-'} message=${err.message}`
-    );
+    logServerError(req, err);
     return res.status(500).json({ error: `保存できませんでした: ${err.message}` });
   }
 
@@ -83,7 +79,7 @@ router.get('/:id', (req, res) => {
     return res.json(row);
   }
 
-  if (!row) return res.status(404).json({ error: '見つかりません' });
+  if (!row) return notFound(res);
   res.json(row);
 });
 
@@ -96,7 +92,7 @@ router.patch('/:id', (req, res) => {
   }
 
   const row = getStmt.get(Number(req.params.id));
-  if (!row) return res.status(404).json({ error: '見つかりません' });
+  if (!row) return notFound(res);
 
   // 本文が無いリクエストでも落とさない（POST と同じ理由）。
   const input = req.body || {};
@@ -105,9 +101,7 @@ router.patch('/:id', (req, res) => {
   let title = row.title;
   if (input.title !== undefined) {
     title = String(input.title).trim();
-    if (title === '') {
-      return res.status(400).json({ error: 'タイトルを入力してください。' });
-    }
+    if (title === '') return titleRequired(res);
   }
 
   const body = input.body === undefined ? row.body : String(input.body).trim();
@@ -123,10 +117,7 @@ router.patch('/:id', (req, res) => {
   try {
     updateStmt.run(title, body, status, priority, category, new Date().toISOString(), row.id);
   } catch (err) {
-    console.error(
-      `[サーバーエラー] method=PATCH path=/api/tickets/${row.id} name=${err.name} ` +
-        `code=${err.code || '-'} message=${err.message}`
-    );
+    logServerError(req, err);
     return res.status(500).json({ error: '更新できませんでした' });
   }
 
@@ -141,7 +132,7 @@ router.delete('/:id', (req, res) => {
   }
 
   const result = deleteStmt.run(Number(req.params.id));
-  if (result.changes === 0) return res.status(404).json({ error: '見つかりません' });
+  if (result.changes === 0) return notFound(res);
   res.status(204).end();
 });
 
