@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>よくある質問ボット</title>
+</head>
+<body>
+
+<h1>よくある質問ボット</h1>
+<p>登録されている質問にお答えします。AIは使っていないため、登録された内容以外は答えません。</p>
+
+<div id="log" style="border:1px solid #888; padding:8px; max-width:38em; min-height:12em"></div>
+
+<form id="ask-form" style="max-width:38em; margin-top:8px">
+  <input id="question" type="text" size="40" placeholder="質問を入力してください" required>
+  <button type="submit">送信</button>
+</form>
+
+<p style="max-width:38em; font-size:0.9em; color:#555">
+  聞ける質問の例:
+  <% examples.forEach(function (q) { %>
+    <button type="button" class="example" style="margin:2px"><%= q %></button>
+  <% }); %>
+</p>
+
+<script>
+  var log = document.getElementById('log');
+  var input = document.getElementById('question');
+
+  function add(who, text, note) {
+    var p = document.createElement('p');
+    p.style.margin = '6px 0';
+    var b = document.createElement('strong');
+    b.textContent = who + ': ';
+    p.appendChild(b);
+    p.appendChild(document.createTextNode(text));
+    if (note) {
+      var small = document.createElement('div');
+      small.style.fontSize = '0.85em';
+      small.style.color = '#555';
+      small.textContent = note;
+      p.appendChild(small);
+    }
+    log.appendChild(p);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  async function ask(question) {
+    add('あなた', question);
+    input.value = '';
+    try {
+      var res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: question }),
+      });
+      var data = await res.json();
+      if (!res.ok) { add('ボット', data.error || 'エラーが発生しました。'); return; }
+      add('ボット', data.answer, data.found ? '出典: ' + data.source : null);
+    } catch (e) {
+      add('ボット', '通信に失敗しました。');
+    }
+  }
+
+  document.getElementById('ask-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (input.value.trim() !== '') ask(input.value.trim());
+  });
+
+  document.querySelectorAll('button.example').forEach(function (b) {
+    b.addEventListener('click', function () { ask(b.textContent); });
+  });
+</script>
+
+</body>
+</html>
