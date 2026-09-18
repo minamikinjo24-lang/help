@@ -8,7 +8,7 @@
 <body>
 <% if (typeof user !== 'undefined' && user) { %>
   <p>
-    <%= user.email %>
+    <%= user.email %>（<%= user.role %>）
     <form method="post" action="/auth/logout" style="display:inline">
       <button type="submit">ログアウト</button>
     </form>

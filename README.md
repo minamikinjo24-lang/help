@@ -87,6 +87,53 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'
 アクセストークンとリフレッシュトークンは**保持しません**（本人確認にしか使わないため）。
 セッションは署名付きCookieのみで、DBには保存しません。
 
+## ロールと権限
+
+`general` / `agent` / `admin` の3つ。環境変数に載っていない人は `general` です。
+
+```
+ROLE_ADMINS=   # カンマ区切りのメールアドレス
+ROLE_AGENTS=   # 同上。両方に載っていれば admin が優先
+```
+
+判定は画面とAPIで**同じ関数**を通します。画面で隠すだけにはしていません。
+
+| # | 対象 | 未ログイン | general | agent | admin |
+|---|---|---|---|---|---|
+| 1 | `GET /api/tickets` | 401 | 200（自分の分のみ） | 200（全件） | 200（全件） |
+| 2 | `POST /api/tickets` | 401 | 201 | 201 | 201 |
+| 3 | `GET /api/tickets/:id` 自分の | 401 | 200 | 200 | 200 |
+| 4 | `GET /api/tickets/:id` 他人の | 401 | 403 | 200 | 200 |
+| 5 | `GET /api/tickets/:id` 存在しない | 401 | 403 | 404 | 404 |
+| 6 | `DELETE /api/tickets/:id` 自分の | 401 | 403 | 403 | 204 |
+| 7 | `DELETE /api/tickets/:id` 他人の | 401 | 403 | 403 | 204 |
+| 8 | `DELETE /api/tickets/:id` 存在しない | 401 | 403 | 403 | 404 |
+| 9 | `GET /` 画面 | 302 | 200（自分の分のみ） | 200（全件） | 200（全件） |
+| 10 | `GET /tickets/new` 画面 | 302 | 200 | 200 | 200 |
+
+この表は `test/check-roles.sh` にそのまま落としてあり、`npm run check` で検証されます。
+
+**#5 と #8 で存在しないIDに 403 を返すのは意図的です。** ここで 404 を返すと、IDを順に
+叩くだけで実在するIDを外から判別できてしまいます。権限が無いロールには存在の有無を
+教えません。
+
+**#1 と #9 の general は拒否ではなく絞り込みです。** 403 は返さず、自分のチケットだけの
+一覧を 200 で返します。拒否ではないのでログにも残しません。
+
+作成者が記録されていない既存データは、general には見えず agent / admin には見えます。
+
+### 拒否時のログ
+
+403 を返したときだけ1行出します。
+
+```
+[権限拒否] role=general sub=u-general method=DELETE path=/api/tickets/1 reason=role_not_allowed
+```
+
+理由は `role_not_allowed`（ロールに権限が無い）と `not_owner`（他人のチケット。存在しない
+IDも区別せずこれ）の2種類。**トークン・本文・タイトル・メールアドレスは出しません**
+（メールではなく `sub` を記録します）。
+
 ## 作成時の通知
 
 作成に成功すると `NOTIFICATION_WEBHOOK_URL` へ `{"id":..,"title":".."}` を POST します。
@@ -98,7 +145,10 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'
 ## データ
 
 `tickets` テーブル1つ。項目は `id` / `title` / `body` / `status` / `priority` /
-`created_at` / `updated_at`。作成者は保持していません。
+`created_at` / `updated_at` / `created_by`。
+
+`created_by` はロール判定で「他人のチケット」を区別するために追加した列で、OIDC の
+`sub` を入れます。既存DBには起動時に自動で追加され、既存行は NULL のままです。
 
 ## 確認
 
@@ -112,6 +162,7 @@ npm run check
 2. 未ログインの `POST /api/tickets` が 401
 3. OAuth を拒否してもアプリが落ちず、ログイン画面へ戻る
 4. ログにトークン・本文・タイトル・通知先URLが出ていない
+5. 上のロール権限表の10行すべて（`npm run check:roles` で単独実行も可）
 
 ## クラウドへのデプロイ
 
@@ -128,4 +179,4 @@ Render の無料プランには永続ディスクが無く、再起動やスリ�
 
 ## 未実装
 
-編集、削除、検索、添付ファイル、権限、装飾。
+編集、検索、添付ファイル、装飾、ロール変更画面、担当者の割り当て。

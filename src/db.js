@@ -15,7 +15,8 @@ db.exec(`
     status     TEXT NOT NULL DEFAULT '未対応' CHECK (status IN ('未対応', '対応中', '完了')),
     priority   TEXT NOT NULL DEFAULT '中'   CHECK (priority IN ('低', '中', '高')),
     created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
+    updated_at TEXT NOT NULL,
+    created_by TEXT
   )
 `);
 
@@ -23,8 +24,15 @@ db.exec(`
 // 古いスキーマの help.db が残っていると、起動は通るのに INSERT だけが落ちるため、
 // ここで列構成を突き合わせて起動時に止める。
 const EXPECTED_COLUMNS = [
-  'id', 'title', 'body', 'status', 'priority', 'created_at', 'updated_at',
+  'id', 'title', 'body', 'status', 'priority', 'created_at', 'updated_at', 'created_by',
 ];
+
+// created_by を後から足したため、既存の help.db には列が無い。
+// 無い場合だけ追加する（既存行は NULL = 作成者不明のまま）。
+const columnsBefore = db.prepare('PRAGMA table_info(tickets)').all().map((c) => c.name);
+if (!columnsBefore.includes('created_by')) {
+  db.exec('ALTER TABLE tickets ADD COLUMN created_by TEXT');
+}
 
 const actualColumns = db.prepare('PRAGMA table_info(tickets)').all().map((c) => c.name);
 const missing = EXPECTED_COLUMNS.filter((c) => !actualColumns.includes(c));

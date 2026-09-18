@@ -15,8 +15,25 @@ const DENY = process.env.IDP_DENY === '1';
   jwk.kid = await calculateJwkThumbprint(jwk);
 
   const codes = new Map();
+
+  // いまログインする利用者。/__set-user で切り替えられる（テスト専用）。
+  // 再起動すると署名鍵が変わり、アプリ側のキャッシュと食い違うため、
+  // 利用者の切り替えは再起動ではなくこのエンドポイントで行う。
+  let current = {
+    email: process.env.IDP_EMAIL || 'taro@example.co.jp',
+    sub: process.env.IDP_SUB || 'mock-user-001',
+    hd: process.env.IDP_HD || 'example.co.jp',
+  };
+
   const app = express();
   app.use(express.urlencoded({ extended: false }));
+
+  app.get('/__set-user', (req, res) => {
+    if (req.query.email) current.email = req.query.email;
+    if (req.query.sub) current.sub = req.query.sub;
+    if (req.query.hd !== undefined) current.hd = req.query.hd;
+    res.json(current);
+  });
 
   app.get('/.well-known/openid-configuration', (req, res) => {
     res.json({
@@ -60,14 +77,14 @@ const DENY = process.env.IDP_DENY === '1';
     codes.delete(req.body.code);
 
     const idToken = await new SignJWT({
-      email: process.env.IDP_EMAIL || 'taro@example.co.jp',
+      email: current.email,
       email_verified: true,
-      hd: process.env.IDP_HD || 'example.co.jp',
+      hd: current.hd,
       nonce: entry.nonce,
     })
       .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
       .setIssuer(ISSUER)
-      .setSubject('mock-user-001')
+      .setSubject(current.sub)
       .setAudience(entry.aud)
       .setIssuedAt()
       .setExpirationTime('10m')

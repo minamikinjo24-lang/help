@@ -1,6 +1,7 @@
 const express = require('express');
 const config = require('../config');
 const { getOidc } = require('../auth/oidc');
+const { roleFor } = require('../auth/roles');
 
 const router = express.Router();
 
@@ -74,7 +75,11 @@ router.get('/auth/callback', async (req, res) => {
     }
 
     // アクセストークンとリフレッシュトークンは保持しない。本人確認にしか使わないため。
-    req.session.user = { sub: claims.sub, email: claims.email };
+    req.session.user = {
+      sub: claims.sub,
+      email: claims.email,
+      role: roleFor(claims.email),
+    };
 
     res.redirect(302, '/');
   } catch (err) {

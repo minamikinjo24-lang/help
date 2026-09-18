@@ -6,8 +6,8 @@ cd "$(dirname "$0")/.."
 R="${CHECK_OUT:-/tmp/helpdesk-check}"; rm -rf "$R"; mkdir -p "$R"
 
 BODY_TEXT='社員番号12345 山田太郎の端末から印刷できません'
-free_port() { for p in $(lsof -ti "tcp:$1" 2>/dev/null); do kill -9 "$p" 2>/dev/null; done
-              for i in $(seq 1 50); do lsof -ti "tcp:$1" >/dev/null 2>&1 || return 0; sleep 0.1; done; }
+free_port() { for p in $(lsof -ti "tcp:$1" -sTCP:LISTEN 2>/dev/null); do kill -9 "$p" 2>/dev/null; done
+              for i in $(seq 1 50); do lsof -ti "tcp:$1" -sTCP:LISTEN >/dev/null 2>&1 || return 0; sleep 0.1; done; }
 wait_up()   { for i in $(seq 1 80); do curl -s -o /dev/null "$1" && return 0; sleep 0.1; done; echo "  !! 起動失敗 $1"; return 1; }
 
 start_app() { # $1=log $2=db $3=webhook

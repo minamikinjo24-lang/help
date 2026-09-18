@@ -4,7 +4,8 @@
   "description": "社内ヘルプデスク（問い合わせ管理）最小版",
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",
-    "check": "bash test/check.sh"
+    "check": "bash test/check.sh && bash test/check-roles.sh",
+    "check:roles": "bash test/check-roles.sh"
   },
   "repository": {
     "type": "git",
