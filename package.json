@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",
     "check": "bash test/check.sh && bash test/check-roles.sh",
-    "check:roles": "bash test/check-roles.sh"
+    "check:roles": "bash test/check-roles.sh",
+    "repro": "bash test/repro.sh"
   },
   "repository": {
     "type": "git",

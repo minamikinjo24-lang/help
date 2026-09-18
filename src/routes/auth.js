@@ -81,6 +81,9 @@ router.get('/auth/callback', async (req, res) => {
       role: roleFor(claims.email),
     };
 
+    // 成否を両方残す。メールアドレスは出さず sub で追える形にする。
+    console.log(`[ログイン成功] sub=${claims.sub} role=${req.session.user.role}`);
+
     res.redirect(302, '/');
   } catch (err) {
     // 失敗理由の識別子のみ。トークン・コード・レスポンス本文は出さない。

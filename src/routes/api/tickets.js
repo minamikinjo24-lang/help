@@ -46,7 +46,10 @@ router.post('/', (req, res) => {
     const result = insertStmt.run(title, body, status, priority, now, now, req.session.user.sub);
     id = Number(result.lastInsertRowid);
   } catch (err) {
-    console.error('[作成失敗]', err.message);
+    console.error(
+      `[サーバーエラー] method=POST path=/api/tickets name=${err.name} ` +
+        `code=${err.code || '-'} message=${err.message}`
+    );
     return res.status(500).json({ error: `保存できませんでした: ${err.message}` });
   }
 

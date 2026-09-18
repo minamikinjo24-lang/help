@@ -42,6 +42,21 @@ app.use('/', authRouter);
 app.use('/api/tickets', requireLogin, apiTicketsRouter);
 app.use('/', requireLogin, ticketsRouter);
 
+// 拾われなかった例外はここで 500 にする。素の 500 だと原因が残らないため。
+// message は本文の断片を含みうる body-parser のエラーだけ落とす。
+// それ以外はトークンも個人情報も含まないので残す。
+app.use((err, req, res, _next) => {
+  const safeMessage = err.type === 'entity.parse.failed' ? '(本文の解析に失敗)' : err.message;
+  console.error(
+    `[サーバーエラー] method=${req.method} path=${req.originalUrl} ` +
+      `name=${err.name} code=${err.code || '-'} message=${safeMessage}`
+  );
+  if (req.originalUrl.startsWith('/api/')) {
+    return res.status(500).json({ error: 'サーバーエラーが発生しました' });
+  }
+  res.status(500).send('サーバーエラーが発生しました');
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`社内ヘルプデスク: http://localhost:${port}`);
