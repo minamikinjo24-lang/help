@@ -5,9 +5,13 @@
   "private": true,
   "scripts": {
     "start": "node src/server.js",
-    "check": "node test/match.test.js"
+    "check": "node test/match.test.js && bash test/check-api.sh",
+    "check:match": "node test/match.test.js",
+    "check:api": "bash test/check-api.sh"
   },
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "ejs": "^6.0.1",
     "express": "^5.2.1"
