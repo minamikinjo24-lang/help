@@ -11,7 +11,7 @@
   <table border="1" cellpadding="4">
     <thead>
       <tr>
-        <th>ID</th><th>タイトル</th><th>ステータス</th><th>優先度</th><th>更新日時</th>
+        <th>ID</th><th>タイトル</th><th>カテゴリ</th><th>ステータス</th><th>優先度</th><th>更新日時</th>
         <%# 削除は admin のみ。ボタンを隠すだけでなく API 側でも 403 になる。 %>
         <% if (canDelete) { %><th>操作</th><% } %>
       </tr>
@@ -21,6 +21,7 @@
         <tr>
           <td><%= t.id %></td>
           <td><%= t.title %></td>
+          <td><%= t.category || '未分類' %></td>
           <td><%= t.status %></td>
           <td><%= t.priority %></td>
           <td><%= t.updated_at %></td>

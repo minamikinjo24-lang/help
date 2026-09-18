@@ -13,6 +13,21 @@
     <label for="body">内容</label><br>
     <textarea id="body" name="body" rows="6" cols="50"></textarea>
   </p>
+
+  <%# 分類案。入力内容から画面内で判定するだけで、保存も送信もしない。 %>
+  <div id="suggestion" hidden
+       style="border:1px solid #888; padding:8px; max-width:34em; margin:8px 0">
+    <strong>提案（確認してください）</strong>
+    <p style="margin:4px 0">
+      優先度案: <span id="s-priority"></span><br>
+      カテゴリ案: <span id="s-category"></span>
+    </p>
+    <p style="margin:4px 0; font-size:0.9em" id="s-reason"></p>
+    <p style="margin:4px 0">
+      <button type="button" id="adopt">この提案を採用する</button>
+    </p>
+  </div>
+
   <p>
     <label for="priority">優先度</label><br>
     <select id="priority" name="priority">
@@ -22,10 +37,54 @@
     </select>
   </p>
   <p>
+    <label for="category">カテゴリ</label><br>
+    <select id="category" name="category">
+      <option value="">未分類</option>
+      <% categories.forEach(function (c) { %>
+        <option value="<%= c %>"><%= c %></option>
+      <% }); %>
+    </select>
+  </p>
+  <p>
     <button type="submit">登録する</button>
     <a href="/">一覧に戻る</a>
   </p>
 </form>
+
+<script><%- classifyScript %></script>
+<script>
+  (function () {
+    var title = document.getElementById('title');
+    var body = document.getElementById('body');
+    var box = document.getElementById('suggestion');
+    var adopt = document.getElementById('adopt');
+    var latest = null;
+
+    function update() {
+      var text = title.value + body.value;
+      if (text.trim().length < 2) { box.hidden = true; return; }
+
+      latest = Classify.classify(title.value, body.value);
+      document.getElementById('s-priority').textContent = latest.priority;
+      document.getElementById('s-category').textContent = latest.category;
+      document.getElementById('s-reason').textContent = latest.reason + '。';
+      // カテゴリが判断不能でも優先度は採用できるので、ボタンは出したままにする
+      box.hidden = false;
+    }
+
+    title.addEventListener('input', update);
+    body.addEventListener('input', update);
+
+    adopt.addEventListener('click', function () {
+      if (!latest) return;
+      document.getElementById('priority').value = latest.priority;
+      if (latest.categoryDecided) {
+        document.getElementById('category').value = latest.category;
+      }
+      box.hidden = true;
+    });
+  })();
+</script>
 
 <script>
   document.getElementById('ticket-form').addEventListener('submit', async function (e) {
@@ -37,6 +96,7 @@
       title: document.getElementById('title').value,
       body: document.getElementById('body').value,
       priority: document.getElementById('priority').value,
+      category: document.getElementById('category').value,
     };
 
     try {
@@ -45,14 +105,8 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.status === 201) {
-        location.href = '/';
-        return;
-      }
-      if (res.status === 401) {
-        location.href = '/auth/login';
-        return;
-      }
+      if (res.status === 201) { location.href = '/'; return; }
+      if (res.status === 401) { location.href = '/auth/login'; return; }
       var data = await res.json().catch(function () { return {}; });
       err.textContent = data.error || '保存できませんでした。';
       err.hidden = false;

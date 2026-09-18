@@ -16,7 +16,8 @@ db.exec(`
     priority   TEXT NOT NULL DEFAULT '中'   CHECK (priority IN ('低', '中', '高')),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    created_by TEXT
+    created_by TEXT,
+    category   TEXT
   )
 `);
 
@@ -24,14 +25,20 @@ db.exec(`
 // 古いスキーマの help.db が残っていると、起動は通るのに INSERT だけが落ちるため、
 // ここで列構成を突き合わせて起動時に止める。
 const EXPECTED_COLUMNS = [
-  'id', 'title', 'body', 'status', 'priority', 'created_at', 'updated_at', 'created_by',
+  'id', 'title', 'body', 'status', 'priority', 'created_at', 'updated_at',
+  'created_by', 'category',
 ];
 
 // created_by を後から足したため、既存の help.db には列が無い。
 // 無い場合だけ追加する（既存行は NULL = 作成者不明のまま）。
+// 値の検査は API 側で行う。ALTER TABLE では CHECK を足せず、新規DBと既存DBで
+// 制約が食い違ってしまうため、ここでは列を足すだけにする。
 const columnsBefore = db.prepare('PRAGMA table_info(tickets)').all().map((c) => c.name);
 if (!columnsBefore.includes('created_by')) {
   db.exec('ALTER TABLE tickets ADD COLUMN created_by TEXT');
+}
+if (!columnsBefore.includes('category')) {
+  db.exec('ALTER TABLE tickets ADD COLUMN category TEXT');
 }
 
 const actualColumns = db.prepare('PRAGMA table_info(tickets)').all().map((c) => c.name);

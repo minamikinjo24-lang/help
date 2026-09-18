@@ -3,10 +3,12 @@ const db = require('../../db');
 const { notifyTicketCreated } = require('../../notify');
 const { canSeeAllTickets, canDeleteTickets } = require('../../auth/roles');
 const { deny } = require('../../auth/deny');
+const { CATEGORIES } = require('../../classify/rules');
 
 const STATUSES = ['未対応', '対応中', '完了'];
 const PRIORITIES = ['低', '中', '高'];
-const COLUMNS = 'id, title, body, status, priority, created_at, updated_at, created_by';
+const COLUMNS =
+  'id, title, body, status, priority, category, created_at, updated_at, created_by';
 
 const listAllStmt = db.prepare(`SELECT ${COLUMNS} FROM tickets ORDER BY id DESC`);
 const listMineStmt = db.prepare(
@@ -14,8 +16,9 @@ const listMineStmt = db.prepare(
 );
 const getStmt = db.prepare(`SELECT ${COLUMNS} FROM tickets WHERE id = ?`);
 const insertStmt = db.prepare(
-  'INSERT INTO tickets (title, body, status, priority, created_at, updated_at, created_by)' +
-    ' VALUES (?, ?, ?, ?, ?, ?, ?)'
+  'INSERT INTO tickets' +
+    ' (title, body, status, priority, category, created_at, updated_at, created_by)' +
+    ' VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
 );
 const deleteStmt = db.prepare('DELETE FROM tickets WHERE id = ?');
 
@@ -39,11 +42,15 @@ router.post('/', (req, res) => {
 
   const status = STATUSES.includes(req.body.status) ? req.body.status : '未対応';
   const priority = PRIORITIES.includes(req.body.priority) ? req.body.priority : '中';
+  // 一覧に無い値は無視して未分類（null）にする。分類は任意項目のため。
+  const category = CATEGORIES.includes(req.body.category) ? req.body.category : null;
   const now = new Date().toISOString();
 
   let id;
   try {
-    const result = insertStmt.run(title, body, status, priority, now, now, req.session.user.sub);
+    const result = insertStmt.run(
+      title, body, status, priority, category, now, now, req.session.user.sub
+    );
     id = Number(result.lastInsertRowid);
   } catch (err) {
     console.error(
