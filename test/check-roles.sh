@@ -22,6 +22,10 @@ create() { curl -s -b "$1" -o "$R/c.json" -X POST http://localhost:3000/api/tick
 code()   { curl -s -b "${1:-/dev/null}" -o /dev/null -w '%{http_code}' -X "${2}" "http://localhost:3000${3}"; }
 anon()   { curl -s -o /dev/null -w '%{http_code}' -X "${1}" "http://localhost:3000${2}"; }
 count()  { curl -s -b "$1" http://localhost:3000/api/tickets | grep -o '"id"' | wc -l | tr -d ' '; }
+patch()  { curl -s -b "${1:-/dev/null}" -o /dev/null -w '%{http_code}' -X PATCH \
+             "http://localhost:3000/api/tickets/$2" -H 'Content-Type: application/json' \
+             -d '{"priority":"高","category":"PC"}'; }
+page()   { curl -s -b "${1:-/dev/null}" "http://localhost:3000$2"; }
 
 ok=0; ng=0
 expect() { # $1=期待 $2=実際 $3=説明
@@ -112,10 +116,34 @@ expect 0 "$(grep -c '操作' "$R/screen_g.html")"            "11: general には
 expect 403 "$(code "$R/jar_g" DELETE "/api/tickets/$T_G2")" "11: ボタンが無くても general の DELETE は 403" 
 
 echo
+echo "### 12. 詳細画面 GET /tickets/:id"
+expect 302 "$(anon GET "/tickets/$T_G")"                  "未ログイン"
+expect 200 "$(code "$R/jar_g"  GET "/tickets/$T_G")"      "general が自分のチケット"
+expect 403 "$(code "$R/jar_g"  GET "/tickets/$T_A")"      "general が他人のチケット"
+expect 403 "$(code "$R/jar_g"  GET "/tickets/9999")"      "general が存在しないID"
+expect 200 "$(code "$R/jar_a"  GET "/tickets/$T_G")"      "agent が他人のチケット"
+expect 404 "$(code "$R/jar_ad" GET "/tickets/9999")"      "admin が存在しないID"
+expect 200 "$(code "$R/jar_g"  GET "/tickets/new")"       "/tickets/new が :id に食われていない"
+
+echo
+echo "### 13. PATCH /api/tickets/:id（分類案の採用）"
+expect 401 "$(curl -s -o /dev/null -w '%{http_code}' -X PATCH "http://localhost:3000/api/tickets/$T_G" -H 'Content-Type: application/json' -d '{"priority":"高"}')" "未ログイン"
+expect 403 "$(patch "$R/jar_g"  "$T_G")"                  "general は更新できない"
+expect 200 "$(patch "$R/jar_a"  "$T_G")"                  "agent は更新できる"
+expect 200 "$(patch "$R/jar_ad" "$T_G")"                  "admin は更新できる"
+expect 1 "$(page "$R/jar_ad" "/tickets/$T_G" | grep -c '<td id="v-priority">高</td>')" "更新が詳細画面に反映される"
+
+echo
+echo "### 14. 詳細画面の「分類案を出す」ボタン"
+expect 0 "$(page "$R/jar_g"  "/tickets/$T_G" | grep -c 'id="run"')" "general には出ない"
+expect 1 "$(page "$R/jar_a"  "/tickets/$T_G" | grep -c 'id="run"')" "agent には出る"
+expect 1 "$(page "$R/jar_ad" "/tickets/$T_G" | grep -c 'id="run"')" "admin には出る"
+
+echo
 echo "### ログの中身"
-# 上で 403 を期待したケースは 9 件（#11 の再確認を含む）。拒否ログも同数のはず。
+# 上で 403 を期待したケースは 12 件（詳細画面2件・PATCH1件を含む）。拒否ログも同数のはず。
 denials=$(grep -c '\[権限拒否\]' "$LOG")
-expect 9 "$denials" "403 の回数と拒否ログの行数が一致する"
+expect 12 "$denials" "403 の回数と拒否ログの行数が一致する"
 for pat in 'mock_access_token' 'eyJ' 'id_token' '@example.co.jp' '問い合わせ'; do
   expect 0 "$(grep -c -- "$pat" "$LOG")" "ログに出ていない: $pat"
 done

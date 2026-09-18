@@ -21,6 +21,9 @@ const insertStmt = db.prepare(
     ' VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
 );
 const deleteStmt = db.prepare('DELETE FROM tickets WHERE id = ?');
+const updateStmt = db.prepare(
+  'UPDATE tickets SET priority = ?, category = ?, updated_at = ? WHERE id = ?'
+);
 
 const router = express.Router();
 
@@ -78,6 +81,38 @@ router.get('/:id', (req, res) => {
 
   if (!row) return res.status(404).json({ error: '見つかりません' });
   res.json(row);
+});
+
+// 優先度とカテゴリの更新。分類案の採用に使う。
+// general は実行できない（画面にボタンを出さないだけでなく、ここでも拒否する）。
+router.patch('/:id', (req, res) => {
+  if (!canSeeAllTickets(req.session.user.role)) {
+    return deny(req, res, 'role_not_allowed');
+  }
+
+  const row = getStmt.get(Number(req.params.id));
+  if (!row) return res.status(404).json({ error: '見つかりません' });
+
+  // 指定が無い項目は今の値を残す
+  const priority = PRIORITIES.includes(req.body.priority) ? req.body.priority : row.priority;
+  const category =
+    req.body.category === null || req.body.category === ''
+      ? null
+      : CATEGORIES.includes(req.body.category)
+        ? req.body.category
+        : row.category;
+
+  try {
+    updateStmt.run(priority, category, new Date().toISOString(), row.id);
+  } catch (err) {
+    console.error(
+      `[サーバーエラー] method=PATCH path=/api/tickets/${row.id} name=${err.name} ` +
+        `code=${err.code || '-'} message=${err.message}`
+    );
+    return res.status(500).json({ error: '更新できませんでした' });
+  }
+
+  res.json(getStmt.get(row.id));
 });
 
 // 削除。admin のみ。

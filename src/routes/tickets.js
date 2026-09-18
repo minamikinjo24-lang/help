@@ -19,6 +19,10 @@ const listAllStmt = db.prepare(`SELECT ${COLUMNS} FROM tickets ORDER BY id DESC`
 const listMineStmt = db.prepare(
   `SELECT ${COLUMNS} FROM tickets WHERE created_by = ? ORDER BY id DESC`
 );
+const getStmt = db.prepare(
+  'SELECT id, title, body, status, priority, category, created_at, updated_at, created_by' +
+    ' FROM tickets WHERE id = ?'
+);
 
 const router = express.Router();
 
@@ -29,13 +33,42 @@ router.get('/', (req, res) => {
   res.render('list', { tickets, user, canDelete: canDeleteTickets(user.role) });
 });
 
-// 新規作成フォーム。送信は画面内から POST /api/tickets を呼ぶ。
+// 新規作成フォーム。/tickets/:id より先に登録すること。
+// 後にすると /tickets/new が :id="new" として扱われ、このページが開けなくなる。
 router.get('/tickets/new', (req, res) => {
   res.render('new', {
     priorities: PRIORITIES,
     categories: CATEGORIES,
     classifyScript: CLASSIFY_SCRIPT,
     user: req.session.user,
+  });
+});
+
+// 詳細。general は自分のものだけ見られる（API と同じ判定）。
+// 他人のものと存在しないIDを区別せず 403 にするのも API と揃える。
+router.get('/tickets/:id', (req, res) => {
+  const user = req.session.user;
+  const ticket = getStmt.get(Number(req.params.id));
+
+  if (!canSeeAllTickets(user.role)) {
+    if (!ticket || ticket.created_by !== user.sub) {
+      console.warn(
+        `[権限拒否] role=${user.role} sub=${user.sub} ` +
+          `method=GET path=${req.originalUrl} reason=not_owner`
+      );
+      return res.status(403).render('error', { message: 'この問い合わせを見る権限がありません。', user });
+    }
+  } else if (!ticket) {
+    return res.status(404).render('error', { message: '問い合わせが見つかりません。', user });
+  }
+
+  res.render('detail', {
+    ticket,
+    user,
+    priorities: PRIORITIES,
+    categories: CATEGORIES,
+    canClassify: canSeeAllTickets(user.role),
+    classifyScript: CLASSIFY_SCRIPT,
   });
 });
 

@@ -20,7 +20,7 @@
       <% tickets.forEach(function (t) { %>
         <tr>
           <td><%= t.id %></td>
-          <td><%= t.title %></td>
+          <td><a href="/tickets/<%= t.id %>"><%= t.title %></a></td>
           <td><%= t.category || '未分類' %></td>
           <td><%= t.status %></td>
           <td><%= t.priority %></td>
