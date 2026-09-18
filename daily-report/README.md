@@ -31,17 +31,15 @@ LINEに自動で投稿するには、会社のLINE公式アカウントとアク
 
 ## 起動
 
-### Windows（おすすめ・1行だけ）
+### Windows（ダブルクリック）
 
-PowerShell を開いて、次の1行を貼り付けて Enter を押すと、
-最新版の取得・部品の用意・起動・ブラウザを開くところまで全部やります。
+`daily-report` フォルダの中の **`nippo-start.bat`** をダブルクリックします。
+初回の部品の用意・起動・ブラウザを開くところまで自動で行います。
+止めるときは、開いた黒い画面で `Ctrl` + `C` です。
 
-```powershell
-iwr -useb https://raw.githubusercontent.com/minamikinjo24-lang/help/claude/internal-helpdesk-design-k6udmr/nippo.ps1 | iex
-```
-
-止めるときは、その画面で `Ctrl` + `C` を押します。
-2回目からも同じ1行でよく、そのつど最新版になります。
+> `iwr ... | iex` のような「ネットから取ってきて即実行」する形は、
+> ウイルス対策ソフトに `ScriptContainedMaliciousContent` としてブロックされます。
+> ZIP を展開して中の `.bat` を実行する形なら、その判定を受けません。
 
 ### 手で動かす場合
 
