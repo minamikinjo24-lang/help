@@ -31,6 +31,20 @@ LINEに自動で投稿するには、会社のLINE公式アカウントとアク
 
 ## 起動
 
+### Windows（おすすめ・1行だけ）
+
+PowerShell を開いて、次の1行を貼り付けて Enter を押すと、
+最新版の取得・部品の用意・起動・ブラウザを開くところまで全部やります。
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/minamikinjo24-lang/help/claude/internal-helpdesk-design-k6udmr/nippo.ps1 | iex
+```
+
+止めるときは、その画面で `Ctrl` + `C` を押します。
+2回目からも同じ1行でよく、そのつど最新版になります。
+
+### 手で動かす場合
+
 ```bash
 npm install
 npm start          # http://localhost:3200
