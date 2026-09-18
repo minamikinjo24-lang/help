@@ -14,19 +14,26 @@
     <textarea id="body" name="body" rows="6" cols="50"></textarea>
   </p>
 
-  <%# 分類案。入力内容から画面内で判定するだけで、保存も送信もしない。 %>
-  <div id="suggestion" hidden
-       style="border:1px solid #888; padding:8px; max-width:34em; margin:8px 0">
-    <strong>提案（確認してください）</strong>
-    <p style="margin:4px 0">
-      優先度案: <span id="s-priority"></span><br>
-      カテゴリ案: <span id="s-category"></span>
+  <%# 分類案。入力内容から画面内で判定するだけで、保存も送信もしない。
+      入力前から枠を出しておき、中身だけ入れ替える。 %>
+  <fieldset style="max-width:34em; margin:12px 0; padding:8px 12px">
+    <legend><strong>分類案</strong></legend>
+
+    <p id="s-empty" style="margin:4px 0; color:#555">
+      タイトルか内容を入力すると、ここに分類案が出ます。
     </p>
-    <p style="margin:4px 0; font-size:0.9em" id="s-reason"></p>
-    <p style="margin:4px 0">
-      <button type="button" id="adopt">この提案を採用する</button>
-    </p>
-  </div>
+
+    <div id="s-result" hidden>
+      <p style="margin:4px 0">
+        優先度案: <strong id="s-priority"></strong><br>
+        カテゴリ案: <strong id="s-category"></strong>
+      </p>
+      <p style="margin:4px 0; font-size:0.9em" id="s-reason"></p>
+      <p style="margin:8px 0 4px">
+        <button type="button" id="adopt">この分類案を採用する</button>
+      </p>
+    </div>
+  </fieldset>
 
   <p>
     <label for="priority">優先度</label><br>
@@ -56,20 +63,27 @@
   (function () {
     var title = document.getElementById('title');
     var body = document.getElementById('body');
-    var box = document.getElementById('suggestion');
+    var empty = document.getElementById('s-empty');
+    var result = document.getElementById('s-result');
     var adopt = document.getElementById('adopt');
     var latest = null;
 
     function update() {
       var text = title.value + body.value;
-      if (text.trim().length < 2) { box.hidden = true; return; }
+      if (text.trim().length < 2) {
+        latest = null;
+        result.hidden = true;
+        empty.hidden = false;
+        return;
+      }
 
       latest = Classify.classify(title.value, body.value);
       document.getElementById('s-priority').textContent = latest.priority;
       document.getElementById('s-category').textContent = latest.category;
       document.getElementById('s-reason').textContent = latest.reason + '。';
       // カテゴリが判断不能でも優先度は採用できるので、ボタンは出したままにする
-      box.hidden = false;
+      empty.hidden = true;
+      result.hidden = false;
     }
 
     title.addEventListener('input', update);
@@ -81,7 +95,9 @@
       if (latest.categoryDecided) {
         document.getElementById('category').value = latest.category;
       }
-      box.hidden = true;
+      // 枠は残したまま、採用済みであることを伝える
+      document.getElementById('s-reason').textContent = '上の入力欄に反映しました。';
+      adopt.disabled = true;
     });
   })();
 </script>
